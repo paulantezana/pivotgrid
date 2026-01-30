@@ -803,10 +803,6 @@ class PivotGrid {
       });
     }
 
-    document.getElementById('toggleSidePanelBtn').addEventListener('click', () => {
-      this.renderer.toggleSidePanel();
-    });
-
     // Set initial Top Panel State (Hidden in Normal Mode)
     this.renderer.updateTopPanelVisibility(this.state.isPivotMode);
 
