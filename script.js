@@ -158,9 +158,11 @@ class GridRenderer {
   constructor(container, events) {
     this.container = container;
     this.events = events;
-    this.columnMenu = document.getElementById('columnMenu');
-    this.columnChooser = document.getElementById('columnChooser');
     this.renderSkeleton();
+
+    // Popup elements now scoped inside the grid container
+    this.columnMenu = this.container.querySelector('#columnMenu');
+    this.columnChooser = this.container.querySelector('#columnChooser');
 
     // References
     this.headerRow = this.container.querySelector('#headerRow');
@@ -238,6 +240,14 @@ class GridRenderer {
                             </div>
                         </div>
                     </div>
+                    <div id="columnMenu" class="popup-menu"></div>
+                    <div id="columnChooser" class="column-chooser-modal hidden">
+                      <div class="chooser-header">
+                        <span>Choose Columns</span>
+                        <button id="closeChooserBtn" class="text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+                      </div>
+                      <div class="chooser-body" id="chooserList"></div>
+                    </div>
                 `;
   }
 
@@ -251,8 +261,9 @@ class GridRenderer {
       }
     });
 
-    // Close Modal Event
-    document.getElementById('closeChooserBtn').onclick = () => this.columnChooser.classList.add('hidden');
+    // Close Modal Event (scoped)
+    const closeBtn = this.container.querySelector('#closeChooserBtn');
+    if (closeBtn) closeBtn.onclick = () => this.columnChooser.classList.add('hidden');
 
     document.addEventListener('mousemove', (e) => this.events.onResizeMove(e));
     document.addEventListener('mouseup', () => this.events.onResizeEnd());
@@ -281,17 +292,19 @@ class GridRenderer {
 
   updateTopPanelVisibility(isPivotMode) {
     // If Pivot Mode is ON, show top panel. If OFF, hide it.
+    const pivotZone = this.container.querySelector('#pivotZoneContainer');
     if (isPivotMode) {
       this.topPanel.classList.remove('hidden');
-      document.getElementById('pivotZoneContainer').classList.remove('hidden');
+      if (pivotZone) pivotZone.classList.remove('hidden');
     } else {
       this.topPanel.classList.add('hidden');
-      document.getElementById('pivotZoneContainer').classList.add('hidden');
+      if (pivotZone) pivotZone.classList.add('hidden');
     }
   }
 
   renderColumnChooser(colDefs) {
-    const list = document.getElementById('chooserList');
+    const list = this.container.querySelector('#chooserList');
+    if (!list) return;
     list.innerHTML = '';
 
     colDefs.forEach((col, index) => {
@@ -607,7 +620,8 @@ class GridRenderer {
     });
 
     this.rowContainer.appendChild(fragment);
-    document.getElementById('statusTotal').innerText = `${rows.length} rows loaded`;
+    const status = this.container.querySelector('#statusTotal');
+    if (status) status.innerText = `${rows.length} rows loaded`;
   }
 
   startEditing(cell, row, col) {
@@ -651,8 +665,8 @@ class GridRenderer {
 
   renderToolPanel(allCols, state) {
     // 1. Column List (Drag Source)
-    const visList = document.getElementById('colVisList');
-    visList.innerHTML = '';
+    const visList = this.container.querySelector('#colVisList');
+    if (visList) visList.innerHTML = '';
     allCols.forEach(col => {
       if (col.field.startsWith('_')) return;
       const item = document.createElement('div');
@@ -669,14 +683,14 @@ class GridRenderer {
       });
       item.addEventListener('dragend', () => item.classList.remove('opacity-50'));
       item.querySelector('input').onchange = (e) => this.events.onColVisibility(col.field, e.target.checked);
-      visList.appendChild(item);
+      if (visList) visList.appendChild(item);
     });
 
     // 2. Drop Zones (Now Split between Top and Side)
     const zones = {
-      rowGroup: document.getElementById('dz-rowGroup-top'), // En Panel Superior
-      pivotCols: document.getElementById('dz-pivotCols-top'), // En Panel Superior
-      value: document.getElementById('dz-value') // En Panel Lateral
+      rowGroup: this.container.querySelector('#dz-rowGroup-top'), // En Panel Superior
+      pivotCols: this.container.querySelector('#dz-pivotCols-top'), // En Panel Superior
+      value: this.container.querySelector('#dz-value') // En Panel Lateral
     };
 
     Object.values(zones).forEach(z => {
@@ -706,13 +720,13 @@ class GridRenderer {
       return el;
     };
 
-    state.rowGroupCols.forEach(c => zones.rowGroup.appendChild(createChip(c, 'rowGroup')));
-    state.pivotCols.forEach(c => zones.pivotCols.appendChild(createChip(c, 'pivotCols')));
-    state.valueCols.forEach(c => zones.value.appendChild(createChip(c, 'value')));
+    if (zones.rowGroup) state.rowGroupCols.forEach(c => zones.rowGroup.appendChild(createChip(c, 'rowGroup')));
+    if (zones.pivotCols) state.pivotCols.forEach(c => zones.pivotCols.appendChild(createChip(c, 'pivotCols')));
+    if (zones.value) state.valueCols.forEach(c => zones.value.appendChild(createChip(c, 'value')));
 
     // 3. Filters
-    const filterContainer = document.getElementById('filterListContainer');
-    filterContainer.innerHTML = '';
+    const filterContainer = this.container.querySelector('#filterListContainer');
+    if (filterContainer) filterContainer.innerHTML = '';
     allCols.forEach(col => {
       if (col.field.startsWith('_')) return;
       const item = document.createElement('div');
@@ -720,12 +734,12 @@ class GridRenderer {
       const val = state.filterModel[col.field] ? state.filterModel[col.field].value : '';
       item.innerHTML = `<label class="filter-label">${col.headerName}</label><input type="text" class="grid-cell-input bg-gray-50" placeholder="Filter..." value="${val}">`;
       item.querySelector('input').oninput = (e) => this.events.onFilterChange(col.field, e.target.value);
-      filterContainer.appendChild(item);
+      if (filterContainer) filterContainer.appendChild(item);
     });
   }
 
   setupDragAndDrop() {
-    document.querySelectorAll('.drop-zone, .drop-zone-horizontal').forEach(z => {
+    this.container.querySelectorAll('.drop-zone, .drop-zone-horizontal').forEach(z => {
       z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('drag-over'); });
       z.addEventListener('dragleave', () => z.classList.remove('drag-over'));
       z.addEventListener('drop', e => {
@@ -795,7 +809,7 @@ class PivotGrid {
   }
 
   init() {
-    const toggle = document.getElementById('pivotModeToggle');
+    const toggle = this.renderer.container.querySelector('#pivotModeToggle');
     if (toggle) {
       toggle.addEventListener('change', e => {
         this.state.isPivotMode = e.target.checked;
@@ -1016,7 +1030,7 @@ class PivotGrid {
     if (col) col.hide = !visible;
     this.refreshFullStructure();
     // Also update modal checkboxes if open
-    if (!document.getElementById('columnChooser').classList.contains('hidden')) {
+    if (this.renderer.columnChooser && !this.renderer.columnChooser.classList.contains('hidden')) {
       this.renderer.renderColumnChooser(this.state.colDefs);
     }
   }
