@@ -221,21 +221,25 @@ class GridRenderer {
                                     </div>
                                 </div>
 
-                                <div class="side-tabs">
-                                    <div class="side-tab active" data-tab="columns">Columns</div>
-                                    <div class="side-tab" data-tab="filters">Filters</div>
-                                </div>
-                                <div class="tab-content active" id="tab-columns">
-                                    <div class="mb-4">
-                                        <div class="text-[10px] font-bold uppercase text-gray-500 mb-2">All Columns (Drag to Top)</div>
-                                        <div id="colVisList" class="flex flex-col max-h-60 overflow-y-auto p-1 border rounded bg-gray-50"></div>
+                                <div class="tool-panel-body flex-1 flex">
+                                    <div class="tab-content-area flex-1">
+                                        <div class="tab-content active" id="tab-columns">
+                                            <div class="mb-4">
+                                                <div class="text-[10px] font-bold uppercase text-gray-500 mb-2">All Columns (Drag to Top)</div>
+                                                <div id="colVisList" class="flex flex-col max-h-60 overflow-y-auto p-1 border rounded bg-gray-50"></div>
+                                            </div>
+                                            <div class="text-[10px] font-bold uppercase text-green-600 mt-2 mb-1">Values</div>
+                                            <div class="drop-zone bg-green-50/50 border-green-200" id="dz-value" data-zone="value"></div>
+                                        </div>
+                                        <div class="tab-content" id="tab-filters">
+                                            <div class="text-xs text-gray-400 italic mb-2">Server-side filters</div>
+                                            <div id="filterListContainer" class="flex flex-col gap-2"></div>
+                                        </div>
                                     </div>
-                                    <div class="text-[10px] font-bold uppercase text-green-600 mt-2 mb-1">Values</div>
-                                    <div class="drop-zone bg-green-50/50 border-green-200" id="dz-value" data-zone="value"></div>
-                                </div>
-                                <div class="tab-content" id="tab-filters">
-                                    <div class="text-xs text-gray-400 italic mb-2">Server-side filters</div>
-                                    <div id="filterListContainer" class="flex flex-col gap-2"></div>
+                                    <div class="side-tabs-vertical" role="tablist" aria-orientation="vertical">
+                                        <div class="side-tab active" data-tab="columns" title="Columns"><i class="fas fa-columns"></i></div>
+                                        <div class="side-tab" data-tab="filters" title="Filters"><i class="fas fa-filter"></i></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -270,10 +274,19 @@ class GridRenderer {
 
     this.container.querySelectorAll('.side-tab').forEach(tab => {
       tab.addEventListener('click', () => {
+        const isActive = tab.classList.contains('active');
+        if (isActive) {
+          // If clicking the active tab, close the side panel (agGrid behavior)
+          this.toggleSidePanel(false);
+          return;
+        }
+        // Open and activate the tab
+        this.toggleSidePanel(true);
         this.container.querySelectorAll('.side-tab').forEach(t => t.classList.remove('active'));
         this.container.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         tab.classList.add('active');
-        this.container.querySelector(`#tab-${tab.dataset.tab}`).classList.add('active');
+        const target = this.container.querySelector(`#tab-${tab.dataset.tab}`);
+        if (target) target.classList.add('active');
       });
     });
     this.setupDragAndDrop();

@@ -428,26 +428,46 @@ body {
   align-items: center;
 }
 
-.side-tabs {
+/* keep horizontal tabs definition for fallback but hide by default when using vertical layout */
+.side-tabs { display: none; }
+
+/* New layout: body with content area and vertical tabs on the right */
+.tool-panel-body { display: flex; flex: 1; }
+.tab-content-area { flex: 1; display: flex; flex-direction: column; }
+
+.side-tabs-vertical {
   display: flex;
-  border-bottom: 1px solid #e2e8f0;
+  flex-direction: column;
+  width: 48px;
+  border-left: 1px solid #e2e8f0;
   background: #fff;
+  align-items: center;
+  justify-content: flex-start;
 }
 
-.side-tab {
-  flex: 1;
-  text-align: center;
-  padding: 8px;
+.side-tabs-vertical .side-tab {
+  flex: none;
+  width: 100%;
+  padding: 12px 8px;
   cursor: pointer;
-  border-bottom: 2px solid transparent;
+  text-align: center;
+  border-left: 3px solid transparent;
   color: #64748b;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
-.side-tab.active {
-  border-bottom-color: var(--accent-color);
+.side-tabs-vertical .side-tab.active {
+  border-left-color: var(--accent-color);
   color: var(--accent-color);
+  background: #f8fafc;
 }
+
+/* generic fallback */
+.side-tab { padding: 8px; }
 
 .tab-content {
   display: none;
@@ -458,9 +478,7 @@ body {
   gap: 10px;
 }
 
-.tab-content.active {
-  display: flex;
-}
+.tab-content.active { display: flex; }
 
 /* DRAG & DROP */
 .drop-zone {
