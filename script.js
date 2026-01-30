@@ -672,9 +672,14 @@ class GridRenderer {
       const item = document.createElement('div');
       item.className = 'col-vis-item';
       item.draggable = true;
+
+      // In pivot mode, checkbox means "belongs to a zone"; otherwise it means visible
+      const isInZone = state.rowGroupCols.some(c => c.field === col.field) || state.pivotCols.some(c => c.field === col.field) || state.valueCols.some(c => c.field === col.field);
+      const checkedAttr = state.isPivotMode ? (isInZone ? 'checked' : '') : (!col.hide ? 'checked' : '');
+
       item.innerHTML = `
                         <i class="fas fa-grip-vertical drag-handle"></i>
-                        <input type="checkbox" ${!col.hide ? 'checked' : ''} class="cursor-pointer">
+                        <input type="checkbox" ${checkedAttr} class="cursor-pointer">
                         <span class="flex-1">${col.headerName}</span>
                     `;
       item.addEventListener('dragstart', (e) => {
@@ -682,7 +687,17 @@ class GridRenderer {
         item.classList.add('opacity-50');
       });
       item.addEventListener('dragend', () => item.classList.remove('opacity-50'));
-      item.querySelector('input').onchange = (e) => this.events.onColVisibility(col.field, e.target.checked);
+
+      const inputEl = item.querySelector('input');
+      if (state.isPivotMode) {
+        // In pivot mode, toggle membership in zones (default add -> value zone)
+        inputEl.onchange = (e) => {
+          if (this.events.onTogglePivotInTool) this.events.onTogglePivotInTool(col.field, e.target.checked);
+        };
+      } else {
+        inputEl.onchange = (e) => this.events.onColVisibility(col.field, e.target.checked);
+      }
+
       if (visList) visList.appendChild(item);
     });
 
@@ -802,7 +817,9 @@ class PivotGrid {
       onRowClick: this.handleRowClick.bind(this),
       // NEW: Select Events
       onRowSelect: this.handleRowSelectInput.bind(this),
-      onSelectAll: this.handleSelectAll.bind(this)
+      onSelectAll: this.handleSelectAll.bind(this),
+      // NEW: Toggle from the Tools panel when in pivot mode
+      onTogglePivotInTool: this.handleTogglePivotInTool.bind(this)
     });
 
     this.init();
@@ -1026,6 +1043,12 @@ class PivotGrid {
   }
 
   handleColVisibility(field, visible) {
+    // In pivot mode, visibility checkboxes are repurposed to toggle membership in zones
+    if (this.state.isPivotMode) {
+      this.handleTogglePivotInTool(field, visible);
+      return;
+    }
+
     const col = this.state.colDefs.find(c => c.field === field);
     if (col) col.hide = !visible;
     this.refreshFullStructure();
@@ -1071,6 +1094,28 @@ class PivotGrid {
     const col = this.state.valueCols.find(c => c.field === field);
     if (col) col.aggFunc = val;
     this.loadData();
+  }
+
+  // Toggle column membership in pivot zones from the Tools panel
+  handleTogglePivotInTool(field, checked) {
+    const col = this.state.colDefs.find(c => c.field === field);
+    if (!col) return;
+
+    // If checked, add to Values by default (unless already in some zone)
+    if (checked) {
+      const already = this.state.rowGroupCols.some(c => c.field === field) || this.state.pivotCols.some(c => c.field === field) || this.state.valueCols.some(c => c.field === field);
+      if (!already) {
+        col.aggFunc = col.aggFunc || 'sum';
+        this.state.valueCols.push(col);
+      }
+    } else {
+      // Remove from all zones
+      this.state.rowGroupCols = this.state.rowGroupCols.filter(c => c.field !== field);
+      this.state.pivotCols = this.state.pivotCols.filter(c => c.field !== field);
+      this.state.valueCols = this.state.valueCols.filter(c => c.field !== field);
+    }
+
+    this.refreshFullStructure();
   }
 
   async handleGroupToggle(groupRow) {
